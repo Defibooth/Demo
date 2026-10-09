@@ -107,7 +107,8 @@
 
   <script>
     // QR code vers cette page (sur téléphone, elle ouvre directement le jeu)
-    var adresse = 'https://jeux.defibooth.fr/demo/';
+    // L'adresse est prise automatiquement : elle marche quel que soit le nom du dépôt (demo, Demo…)
+    var adresse = location.origin + location.pathname.replace(/index\.html$/, '');
     try {
       new QRCode(document.getElementById('qrcode'), { text: adresse, width: 208, height: 208, colorDark: '#173a7a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
     } catch (e) {
