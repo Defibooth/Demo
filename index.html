@@ -63,7 +63,7 @@
     .phone::after { right: -4px; top: 28%; height: 14%; }
     .screen { position: relative; width: 100%; height: 100%; border-radius: 44px; overflow: hidden; background: #140c26; }
     .island { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 32%; height: 28px; border-radius: 20px; background: #000; z-index: 2; pointer-events: none; }
-    iframe { width: 100%; height: 100%; border: 0; display: block; }
+    iframe { position: absolute; top: 0; left: 0; width: 390px; height: 844px; border: 0; display: block; transform-origin: 0 0; }
 
     @media (max-width: 860px) {
       .logo { margin-left: auto; margin-right: auto; }
@@ -105,6 +105,22 @@
     </div>
   </div>
 
+  <script>
+    // Le jeu est affiché comme sur un vrai téléphone (390 px de large),
+    // puis réduit pour tenir exactement dans l'écran du téléphone dessiné : plus besoin de faire défiler.
+    (function () {
+      var ecran = document.querySelector('.screen');
+      var cadre = ecran.querySelector('iframe');
+      function ajuster() {
+        var k = ecran.clientWidth / 390;
+        cadre.style.height = (ecran.clientHeight / k) + 'px';
+        cadre.style.transform = 'scale(' + k + ')';
+      }
+      ajuster();
+      addEventListener('resize', ajuster);
+      if (window.ResizeObserver) new ResizeObserver(ajuster).observe(ecran);
+    })();
+  </script>
   <script>
     // QR code vers cette page (sur téléphone, elle ouvre directement le jeu)
     // L'adresse est prise automatiquement : elle marche quel que soit le nom du dépôt (demo, Demo…)
