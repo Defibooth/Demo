@@ -541,6 +541,27 @@
     }
 
     // Affichage du défi tiré, après le ralentissement
+    // ================= DÉMO : 3 défis maximum =================
+    const DEMO_MAX = 3;
+    const LIEN_OFFRES = 'https://www.defibooth.fr/offres';
+    const CLE_DEMO = 'defibooth-demo-compte';
+    function compteDemo() { try { return +localStorage.getItem(CLE_DEMO) || 0; } catch (e) { return compteMemoire; } }
+    let compteMemoire = 0;
+    function noterDefiDemo() { compteMemoire = compteDemo() + 1; try { localStorage.setItem(CLE_DEMO, compteMemoire); } catch (e) {} }
+    function afficherFinDemo(justeFini) {
+      btn.textContent = 'Découvrir les offres';
+      btn.classList.remove('running', 'attente');
+      aide.textContent = justeFini
+        ? 'C\'était le dernier défi de la démo (3 sur 3). Envie du jeu complet ?'
+        : 'Démo terminée (3 défis sur 3). Envie du jeu complet ?';
+      if (!justeFini) {
+        card.className = 'card placeholder';
+        etiquette.textContent = 'Démo terminée';
+        texte.textContent = 'Merci d\'avoir testé Defibooth !';
+      }
+    }
+    // ===========================================================
+
     function reveler() {
       ralentit = false;
       // Le vrai défi est pioché dans la pioche mélangée
@@ -555,6 +576,8 @@
       if (!calmeAnim) { flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go'); }
       if (navigator.vibrate) navigator.vibrate(60);
       launchConfetti();
+      noterDefiDemo();
+      if (compteDemo() >= DEMO_MAX) afficherFinDemo(true);
     }
 
     function toggleLoop() {
@@ -577,6 +600,7 @@
           else reveler();
         })();
       } else {
+        if (compteDemo() >= DEMO_MAX) { location.href = LIEN_OFFRES; return; }
         isRunning = true;
         btn.textContent = "Stop !";
         btn.classList.add('running');
@@ -587,6 +611,7 @@
         intervalId = setInterval(defilement, 60);
       }
     }
+    if (compteDemo() >= DEMO_MAX) afficherFinDemo(false);
   </script>
 
 </body>
