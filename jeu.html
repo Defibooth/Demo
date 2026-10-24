@@ -32,12 +32,41 @@
 <script>
   if (window.self !== window.top) document.documentElement.classList.add('dans-cadre');
   // Si le téléphone affiche la page en « version ordinateur », on la recale sur la largeur réelle de l'écran.
+  // Vérifié à l'ouverture puis à nouveau quelques instants après : le navigateur intégré de Gmail
+  // (et d'autres applis) donne parfois une mauvaise largeur au tout premier affichage.
   (function () {
-    var w = screen.width;
-    if (navigator.maxTouchPoints > 0 && w < 700 && window.innerWidth > w * 1.4) {
-      document.documentElement.classList.add('mode-pc');
-      document.documentElement.style.setProperty('--k', window.innerWidth / w);
+    var racine = document.documentElement;
+    function caler() {
+      var w = screen.width, l = window.innerWidth;
+      var pc = navigator.maxTouchPoints > 0 && w > 0 && w < 700 && l > w * 1.4;
+      racine.classList.toggle('mode-pc', pc);
+      if (pc) racine.style.setProperty('--k', l / w); else racine.style.removeProperty('--k');
+      // Hauteur réelle de l'écran, mesurée en direct (les unités vh/dvh peuvent rester fausses dans Gmail)
+      if (window.innerHeight > 0) racine.style.setProperty('--u', (window.innerHeight / 100) + 'px');
     }
+    caler();
+    document.addEventListener('DOMContentLoaded', caler);
+    window.addEventListener('load', caler);
+    window.addEventListener('resize', caler);
+    window.addEventListener('orientationchange', caler);
+    window.addEventListener('pageshow', caler);
+    [150, 400, 1000, 2000].forEach(function (t) { setTimeout(caler, t); });
+    // Si, malgré tout, la taille d'écran donnée par l'appli (Gmail…) reste fausse, on recharge la page
+    // une seule fois, automatiquement : c'est exactement ce que fait « actualiser » à la main.
+    function tailleFausse() {
+      var sw = screen.width, sh = Math.max(screen.height, screen.width);
+      if (window.self !== window.top) return false; // jeu affiché dans la page PC : on ne touche à rien
+      if (!(navigator.maxTouchPoints > 0) || !sw || sw >= 700) return false;
+      return window.innerWidth > sw * 1.15 || window.innerHeight > sh * 1.1
+        || document.documentElement.scrollHeight > window.innerHeight * 1.25;
+    }
+    function verifier() {
+      try {
+        var cle = 'defibooth-recale:' + location.pathname;
+        if (tailleFausse() && !sessionStorage.getItem(cle)) { sessionStorage.setItem(cle, '1'); location.reload(); }
+      } catch (e) {}
+    }
+    window.addEventListener('load', function () { setTimeout(verifier, 700); });
   })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,13 +87,13 @@
     --brume: #b9a9d3;
     --display: 'Fraunces', Georgia, serif;
     --texte: 'Outfit', system-ui, -apple-system, sans-serif;
-    --fig: clamp(64px, 11dvh, 88px);
+    --fig: clamp(64px, calc(11 * var(--u, 1dvh)), 88px);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html { -webkit-text-size-adjust: 100%; background: var(--nuit); }
   body {
     font-family: var(--texte);
-    min-height: 100vh; min-height: 100dvh;
+    min-height: 100vh; min-height: calc(100 * var(--u, 1dvh));
     background:
       radial-gradient(120% 70% at 50% 0%, #3a1a55 0%, transparent 60%),
       radial-gradient(90% 60% at 50% 110%, #4a1240 0%, transparent 65%),
@@ -77,7 +106,7 @@
     overflow-x: hidden;
     padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   }
-  html.mode-pc body { width: calc(100vw / var(--k)); min-height: calc(100vh / var(--k)); transform: scale(var(--k)); transform-origin: 0 0; }
+  html.mode-pc body { width: calc(100vw / var(--k)); min-height: calc(100 * var(--u, 1vh) / var(--k)); transform: scale(var(--k)); transform-origin: 0 0; }
 
   .decor { position: fixed; pointer-events: none; z-index: 0; }
   #lumieres { inset: 0; width: 100%; height: 100%; }
@@ -92,24 +121,24 @@
   @keyframes eclat { 0%,100% { opacity: .2; transform: scale(.5); } 50% { opacity: 1; transform: scale(1.1); } }
   @keyframes scintille { 0%,100% { opacity: .25; transform: scale(.6); } 50% { opacity: 1; transform: scale(1); } }
 
-  main { position: relative; z-index: 1; width: 100%; max-width: 420px; min-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom))); display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.6dvh, 14px); }
-  .jeu { width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.6dvh, 14px); margin-block: auto; }
-  header { display: flex; flex-direction: column; align-items: center; gap: clamp(6px, 1.2dvh, 10px); }
+  main { position: relative; z-index: 1; width: 100%; max-width: 420px; min-height: calc(calc(100 * var(--u, 1dvh)) - max(12px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom))); display: flex; flex-direction: column; align-items: center; gap: clamp(8px, calc(1.6 * var(--u, 1dvh)), 14px); }
+  .jeu { width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(8px, calc(1.6 * var(--u, 1dvh)), 14px); margin-block: auto; }
+  header { display: flex; flex-direction: column; align-items: center; gap: clamp(6px, calc(1.2 * var(--u, 1dvh)), 10px); }
 
   /* Logo en blanc, posé directement sur le fond */
   .plaque {
-    margin-top: clamp(10px, 2.2dvh, 22px);
-    margin-bottom: clamp(4px, 1dvh, 10px);
+    margin-top: clamp(10px, calc(2.2 * var(--u, 1dvh)), 22px);
+    margin-bottom: clamp(4px, calc(1 * var(--u, 1dvh)), 10px);
   }
   .logo {
-    display: block; width: clamp(170px, 25dvh, 240px); max-width: 66vw; height: auto;
+    display: block; width: clamp(170px, calc(25 * var(--u, 1dvh)), 240px); max-width: 66vw; height: auto;
     filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255,241,201,.35)) drop-shadow(0 2px 6px rgba(0,0,0,.4));
   }
 
-  .surtitre { font-size: .72rem; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; color: var(--or-clair); margin-top: clamp(4px, 1dvh, 10px); }
+  .surtitre { font-size: .72rem; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; color: var(--or-clair); margin-top: clamp(4px, calc(1 * var(--u, 1dvh)), 10px); }
   h1 {
     font-family: var(--display); font-style: italic; font-weight: 800;
-    font-size: clamp(2rem, 5.6dvh, 2.7rem); line-height: 1.05; letter-spacing: -.01em; text-wrap: balance;
+    font-size: clamp(2rem, calc(5.6 * var(--u, 1dvh)), 2.7rem); line-height: 1.05; letter-spacing: -.01em; text-wrap: balance;
     background: linear-gradient(100deg, #b8862f 0%, var(--champagne) 30%, var(--or) 52%, var(--champagne) 72%, #b8862f 100%);
     background-size: 220% 100%;
     -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: var(--or);
@@ -117,10 +146,10 @@
     filter: drop-shadow(0 2px 10px rgba(233,180,76,.25));
   }
   @keyframes reflet { from { background-position: 100% 0; } to { background-position: -120% 0; } }
-  .titres { display: flex; flex-direction: column; align-items: center; gap: clamp(6px, 1.2dvh, 10px); }
-  .subtitle { font-size: clamp(.95rem, 2.3dvh, 1.05rem); color: var(--brume); }
+  .titres { display: flex; flex-direction: column; align-items: center; gap: clamp(6px, calc(1.2 * var(--u, 1dvh)), 10px); }
+  .subtitle { font-size: clamp(.95rem, calc(2.3 * var(--u, 1dvh)), 1.05rem); color: var(--brume); }
 
-  .piece { position: relative; width: 100%; margin: calc(var(--fig) * .95) 0 clamp(6px, 1.6dvh, 16px); }
+  .piece { position: relative; width: 100%; margin: calc(var(--fig) * .95) 0 clamp(6px, calc(1.6 * var(--u, 1dvh)), 16px); }
   .flutes { position: absolute; right: 10px; bottom: calc(100% - 8px); width: calc(var(--fig) * 1.1); height: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,.4)); }
   .bulle { animation: monte 2.2s ease-in infinite; animation-delay: var(--d); }
   .tchin { animation: tchin 2.4s ease-in-out infinite; transform-origin: 60px 10px; }
@@ -129,10 +158,10 @@
 
   .card {
     width: 100%;
-    min-height: clamp(140px, 22dvh, 200px);
+    min-height: clamp(140px, calc(22 * var(--u, 1dvh)), 200px);
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
-    font-family: var(--texte); font-size: clamp(1.25rem, 3dvh, 1.55rem); font-weight: 600; line-height: 1.35;
+    font-family: var(--texte); font-size: clamp(1.25rem, calc(3 * var(--u, 1dvh)), 1.55rem); font-weight: 600; line-height: 1.35;
     text-wrap: balance; overflow-wrap: anywhere;
     color: var(--creme);
     border: 2px solid transparent; border-radius: 22px;
@@ -241,13 +270,13 @@
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   /* ===== Démo ===== */
   html.dans-cadre body { padding-top: 46px; }
-  html.dans-cadre main { min-height: calc(100dvh - 46px - max(16px, env(safe-area-inset-bottom))); }
+  html.dans-cadre main { min-height: calc(calc(100 * var(--u, 1dvh)) - 46px - max(16px, env(safe-area-inset-bottom))); }
   .points { display: flex; gap: 10px; justify-content: center; margin-top: -4px; }
   .points span { width: 11px; height: 11px; border-radius: 50%; border: 2px solid rgba(243,210,122,.55); transition: background .3s, transform .3s; }
   .points span.fait { background: var(--or-clair); border-color: var(--or-clair); transform: scale(1.2); box-shadow: 0 0 8px rgba(243,210,122,.8); }
   .card.fin .texte { display: flex; flex-direction: column; gap: 10px; }
-  .card.fin strong { font-family: var(--display); font-style: italic; font-weight: 800; font-size: clamp(1.25rem, 3dvh, 1.5rem); color: var(--champagne); line-height: 1.2; }
-  .card.fin small { font-size: clamp(.9rem, 2.1dvh, 1rem); font-weight: 400; color: var(--brume); line-height: 1.45; }
+  .card.fin strong { font-family: var(--display); font-style: italic; font-weight: 800; font-size: clamp(1.25rem, calc(3 * var(--u, 1dvh)), 1.5rem); color: var(--champagne); line-height: 1.2; }
+  .card.fin small { font-size: clamp(.9rem, calc(2.1 * var(--u, 1dvh)), 1rem); font-weight: 400; color: var(--brume); line-height: 1.45; }
   .card.fin .ampoules { animation-duration: 3s; }
   .cta {
     width: 100%; min-height: 60px; display: flex; align-items: center; justify-content: center;
